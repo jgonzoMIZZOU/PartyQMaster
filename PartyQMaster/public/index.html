@@ -1,0 +1,295 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Party Q</title>
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
+    <link href="https://fonts.googleapis.com/css?family=Gloria+Hallelujah" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="style.css">
+  </head>
+  <body onload="startTime()">
+    <div class="container-fluid">
+      <div id="login" class="text-center">
+        <h1 id="title">PARTY Q</h1>
+        <br><br><br><br>
+        <div id = "mainPage" class="col align-self-center">
+          <a id="hostBtn" href="/login" class="btn btn-lg btn-success col-md-4">HOST A PARTY</a>
+          <a href="join.html" class="btn btn-lg btn-success col-md-4">JOIN A PARTY</a>
+          <!-- <button onclick="joinRoom()" class="btn btn-lg btn-success col-md-4">JOIN A PARTY</button> -->
+        </div>
+      </div>
+      <div id="loggedin">
+        <div id="room">
+        </div>
+      </div>
+      <div id="txt"></div>
+    </div>
+
+    <script id="room-template" type="text/x-handlebars-template">
+      <div class="container-fluid">
+        <div class="row">
+          <div class="col-md-3">
+            <h1>Room Number: {{roomNumber}}</h1>
+            <div id="queue">
+              <label id="queueHeader" class="label">Queue</label>
+              <button id="refresh" class="btn btn-success">Refresh</button>
+              <div id="queueResults">
+                <div id="initialQueueTable">
+                  <table class="table">
+                    <tr>
+                      <th class="sand">Title</th>
+                      <th class="sand">Artist</th>
+                    </tr>
+                  </table>
+                </div>
+                <div id="queueDisplay"></div>
+              </div>
+            </div>
+            <div id="currentSong">
+              <div class="childDiv">
+                <img src="{{currentSongArt}}" style="width: 95px; height: 96px;">
+              </div>
+              <div class="childDiv" id="currentSongDesc">
+                <p id="largerTxt">Current Song</p>
+                <p>Title: {{songTitle}}</p>
+                <p>Artist: {{songArtist}}</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-8">
+            <div id="search">
+              <form class="form-horizontal" id="searchForm">
+                <div class="form-group form-group-lg">
+                  <label class="sr-only" for="artistSearch">Search</label>
+                  <div class="col-sm-10">
+                    <input type="text" class="form-control sand" id="inputSearch" placeholder="Search for Artist/Track">
+                  </div>
+                  <button id="searchButton" class="btn btn-success">Search</button>
+                </div>
+              </form>
+              <div id="searchResults">
+                <div id="initialTable">
+                  <table class="table">
+                    <tr>
+                      <th class="sand">Title</th>
+                      <th class="sand">Artist</th>
+                      <th class="sand">Album</th>
+                      <th class="sand">Add</th>
+                    </tr>
+                  </table>
+                </div>
+                <div id="searchContents"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </script>
+
+    <script src="//cdnjs.cloudflare.com/ajax/libs/handlebars.js/2.0.0-alpha.1/handlebars.min.js"></script>
+    <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+    <script>
+
+      function startTime() {
+        var today = new Date();
+        var h = today.getHours();
+        var m = today.getMinutes();
+        var s = today.getSeconds();
+        // add a zero in front of numbers<10
+        m = checkTime(m);
+        s = checkTime(s);
+        document.getElementById("txt").innerHTML = h + ":" + m + ":" + s;
+        var t = setTimeout(function(){ startTime() }, 500);
+      }
+
+      function checkTime(i) {
+        if (i < 10) {
+          i = "0" + i;
+        }
+        return i;
+      }
+
+      var songUri = '';
+      var client_id = '';
+      var playlist_id ='6hBFQkE0TINu5Ncof4uXL6';
+
+      (function() {
+        /**
+         * Obtains parameters from the hash of the URL
+         * @return Object
+         */
+        function getHashParams() {
+          var hashParams = {};
+          var e, r = /([^&;=]+)=?([^&;]*)/g,
+              q = window.location.hash.substring(1);
+          while ( e = r.exec(q)) {
+             hashParams[e[1]] = decodeURIComponent(e[2]);
+          }
+          return hashParams;
+        }
+
+        function updateCurrentSong(duration, timestamp) {
+          var endTime = timestamp + duration;
+          return endTime;
+        }
+
+        var roomSource = document.getElementById('room-template').innerHTML,
+            roomTemplate = Handlebars.compile(roomSource),
+            roomPlaceholder = document.getElementById('room');
+
+        var params = getHashParams();
+
+        var access_token = params.access_token,
+            roomNumber = params.roomNumber,
+            error = params.error;
+
+        if (error) {
+          alert('There was an error during the authentication');
+        } else {
+          if (access_token) {
+            $.ajax({
+                url: 'https://api.spotify.com/v1/me',
+                headers: {
+                  'Authorization': 'Bearer ' + access_token
+                },
+                success: function(response) {
+                  var currentSongArt = '';
+                  var songTitle = '';
+                  var songArtist = '';
+                  client_id = response.id;
+
+                  $('#login').hide();
+                  $('#search').show();
+                  $('#loggedin').show();
+
+                  // This creates a PartyQ playlist in the hosts spotify account
+                  $.ajax({
+                    url: 'https://api.spotify.com/v1/users/' + client_id + '/playlists',
+                    method: 'POST',
+                    data: JSON.stringify({
+                      'name': 'PartyQ',
+                      'public': false,
+                      'description': 'Playlist Created by PartyQ Application'
+                    }),
+                    dataType: 'json',
+                    headers: {
+                      'Authorization': 'Bearer ' + access_token,
+                      'Content-Type': 'application/json'
+                    },
+                    success: function(response) {
+                      // console.log('create playlist response', response);
+                    }
+                  });
+
+                  // gets the newly created spotify playlist id
+                  $.ajax({
+                    url: '/getPlaylistId',
+                    data: {
+                      'access_token': access_token,
+                      'roomNumber': roomNumber
+                    }
+                  }).done(function(data) {
+                    playlist_id = data;
+                    console.log("playlist_id:" + playlist_id);
+                  })
+
+                  // get the current playing song... if there is one
+                  $.ajax({
+                    url: '/getCurrentSong',
+                    data: {
+                      'access_token': access_token
+                    }
+                  }).done(function(data) {
+                    // console.log(data);
+                    currentSongArt = data.item.album.images[0].url;
+                    songTitle = data.item.name;
+                    songArtist = data.item.artists[0].name;
+                    roomPlaceholder.innerHTML = roomTemplate({
+                      roomNumber: roomNumber,
+                      currentSongArt: currentSongArt,
+                      songTitle: songTitle,
+                      songArtist: songArtist
+                    });
+                  })
+                }
+            });
+          } else {
+              // render initial screen
+              $('#login').show();
+              $('#search').hide();
+              $('#loggedin').hide();
+          }
+
+          $("#room").on("click", "#searchButton", function() {
+            var searchValue = document.getElementById('inputSearch').value;
+            $.ajax({
+              url: '/searchMusic',
+              data: {
+                'access_token': access_token,
+                'searchValue': searchValue
+              }
+            }).done(function(data) {
+              var results = data;
+              // console.log(data);
+              var i = 0;
+              var text = '<table class="table" id="tableId"><tr><th class="sand">Title</th><th class="sand">Artist</th><th class="sand">Album</th><th class="sand">Add</th></tr>';
+              for(i = 0; i < results.length; i++){
+                text += '<tr id=' + i + '><td>' + results[i].name + '</td><td>' + results[i].artists[0].name + '</td><td>' + results[i].album.name + '</td><td><button id="addSong" onclick="test(' + i + ')">+</button></td><td hidden id="uri' + i + '">' + results[i].uri + '</td></tr>';
+              }
+              text = text + "</table>";
+              document.getElementById('searchContents').innerHTML = text;
+              $('#initialTable').hide();
+            })
+          });
+
+          $("#room").on("click", "#addSong", function() {
+              // this will add a song to the playlist
+            $.ajax({
+              url: 'https://api.spotify.com/v1/users/' + client_id + '/playlists/' + playlist_id + '/tracks?uris=spotify%3Atrack%3A' + songUri,
+              method: 'POST',
+              dataType: 'text',
+              headers: {
+                'Authorization': 'Bearer ' + access_token,
+                'Content-Type': 'application/json'
+              },
+              success: function(r) {
+                alert("Song Added to the Queue!");
+              }
+            });
+          });
+
+          $("#room").on("click", "#refresh", function() {
+            $.ajax({
+              url: '/refresh',
+              data: {
+                'access_token': access_token,
+                'client_id': client_id,
+                'playlist_id': playlist_id
+              }
+            }).done(function(data) {
+              var playlistQueue = data;
+              // console.log(playlistQueue);
+              var text = '<table class="table"><tr><th class="sand">Title</th><th class="sand">Artist</th><th class="sand">UpVote</th></tr>';
+              for(var i = 0; i < playlistQueue.length; i++) {
+                text += '<tr><td>' + playlistQueue[i].track.name + '</td><td>' + playlistQueue[i].track.artists[0].name + '</td><td style="text-align: center;"><button>+</button></td></tr>';
+              }
+              text = text + '</table>';
+              document.getElementById('queueDisplay').innerHTML = text;
+              $('#initialQueueTable').hide();
+            })
+          });
+
+        }
+      })();
+
+      function test(number) {
+        songUri = '';
+        var table = document.getElementById('tableId');
+        var uri = table.rows[number + 1].cells[4].innerHTML;
+        for(var i = 14; i < uri.length; i++){
+          songUri += uri[i];
+        }
+      }
+    </script>
+  </body>
+</html>
+

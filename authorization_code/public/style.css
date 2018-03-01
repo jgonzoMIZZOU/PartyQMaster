@@ -1,0 +1,79 @@
+#login, #loggedin {
+	display: none;
+}
+
+#title {
+	font-size: 150px;
+	padding-top: 100px;
+	font-family: 'Gloria Hallelujah', cursive;
+}
+
+#mainPage {
+	font-family: 'Gloria Hallelujah', cursive;
+	margin-top: 150px;
+}
+
+#hostBtn {
+	margin-right: 200px;
+	margin-left: 100px;
+}
+
+#currentSong {
+	/*border: solid 2px;*/
+	margin-top: 13px;
+	height: 100px;
+	width: 320px;
+	float: left;
+}
+
+#currentSongDesc {
+	/*border: dotted 2px;*/
+	margin-top: 40px;
+}
+
+#queue {
+	border: solid 2px;
+	width: 320px;
+	height: 530px;
+}
+
+#search {
+	/*border: solid 2px;*/
+	width: 1000px;
+	height: 735px;
+	margin-top: 20px;
+}
+
+#searchButton {
+	width: 155px;
+}
+
+#searchResults {
+	overflow: scroll;
+	height: 665px;
+}
+
+.sand {
+	background-color: #ecebe8;
+}
+
+.text-overflow {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	width: 500px;
+}
+
+.childDiv {
+	float: left;
+	margin-right: 5px;
+	/*border: solid 1px;*/
+}
+
+body {
+	background-color: #828282;
+}
+
+tr {
+	border-color: #3b3b3d;
+}
